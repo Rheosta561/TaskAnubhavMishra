@@ -1,13 +1,13 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from '../ui/button';
+import React, { useState, useEffect, useMemo } from 'react'
+import { Button } from '../ui/button'
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
-} from '../ui/card';
+} from '../ui/card'
 import {
   LayoutDashboard,
   BarChart3,
@@ -15,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Repeat,
-} from 'lucide-react';
-import { Separator } from '../ui/separator';
+} from 'lucide-react'
+import { Separator } from '../ui/separator'
 import {
   ResponsiveContainer,
   PieChart,
@@ -27,63 +27,106 @@ import {
   Line,
   XAxis,
   YAxis,
-} from 'recharts';
-import { predefinedCategories, transactions, savingsData } from '@/constants/mockData';
-import { Calendar } from '../ui/calendar';
-import { format } from 'date-fns';
+} from 'recharts'
+import { Calendar } from '../ui/calendar'
+import { format } from 'date-fns'
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '../ui/select';
-import { toast } from 'sonner';
-import { z } from 'zod';
+} from '../ui/select'
+import { toast } from 'sonner'
+import { z } from 'zod'
+
+import { getStoredBudgets } from '@/app/localStorageActions/action'
+import { getStoredTransactions } from '@/app/localStorageActions/transactionsStorage'
+import { Transaction, Category } from '@/constants'
+
+import {
+  predefinedCategories,
+  transactions as mockTransactions,
+  mockBudgets,
+
+} from '@/constants/mockData'
 
 function Dashboard() {
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>();
-  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
-  const [pageMap, setPageMap] = useState<{ [category: string]: number }>({});
-  const ITEMS_PER_PAGE = 3;
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>()
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date')
+  const [pageMap, setPageMap] = useState<{ [category: string]: number }>({})
+  const [budgets, setBudgets] = useState(getStoredBudgets())
+  const [transactions, setTransactions] = useState<Transaction[]>(getStoredTransactions())
+  const [categories, setCategories] = useState<Category[]>([])
+  const [mockMode, setMockMode] = useState(false)
 
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const ITEMS_PER_PAGE = 3
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
 
-
-  // Zod validation for validating the dates range as per the user's selection 
   const dateRangeSchema = z
-    .object({
-      from: z.date(),
-      to: z.date(),
-    })
-    .refine((range: { from: Date; to: Date }) => range.from <= today && range.to <= today, {
+    .object({ from: z.date(), to: z.date() })
+    .refine((range) => range.from <= today && range.to <= today, {
       message: 'Cannot select a future date',
-    });
+    })
 
   useEffect(() => {
-    setPageMap({});
-  }, [dateRange]);
+    if (mockMode) {
+      setBudgets(mockBudgets || [])
+      setTransactions(mockTransactions)
+      setCategories(predefinedCategories)
+    } else {
+      const storedBudgets = getStoredBudgets()
+      const storedTxns = getStoredTransactions()
+
+      setBudgets(storedBudgets)
+      setTransactions(storedTxns)
+
+      const catMap: { [name: string]: string } = {}
+      storedBudgets.forEach((b) => {
+        const cat = b.name.split('-')[0]
+        catMap[cat] = b.color
+      })
+      const catList = Object.entries(catMap).map(([name, color]) => ({ name, color }))
+      setCategories(catList)
+    }
+  }, [mockMode, dateRange])
+
+  useEffect(() => {
+    setPageMap({})
+  }, [dateRange])
 
   const filteredTransactions = useMemo(() => {
     return transactions
       .filter((txn) => {
-        if (!dateRange || !dateRange.from) return true;
-
-        const txnDate = new Date(txn.date);
-        const from = new Date(dateRange.from);
-        from.setHours(0, 0, 0, 0);
-
-        const to = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from);
-        to.setHours(23, 59, 59, 999);
-
-        return txnDate >= from && txnDate <= to;
+        if (!dateRange || !dateRange.from) return true
+        const txnDate = new Date(txn.date)
+        const from = new Date(dateRange.from)
+        from.setHours(0, 0, 0, 0)
+        const to = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from)
+        to.setHours(23, 59, 59, 999)
+        return txnDate >= from && txnDate <= to
       })
       .sort((a, b) => {
-        if (sortBy === 'amount') return b.amount - a.amount;
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      });
-  }, [transactions, dateRange, sortBy]);
+        if (sortBy === 'amount') return b.amount - a.amount
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      })
+  }, [transactions, dateRange, sortBy])
+
+  const totalBalance = useMemo(() => {
+    return budgets.reduce((sum, b) => sum + (b.limit || 0), 0)
+  }, [budgets])
+
+  const totalExpenses = useMemo(() => {
+    return budgets.reduce((sum, b) => sum + (b.spent || 0), 0)
+  }, [budgets])
+
+  const savingsData = useMemo(() => {
+    return budgets.map((b) => ({
+      date: b.name.split('-')[1] || '',
+      amount: Math.max((b.limit || 0) - (b.spent || 0), 0),
+    }))
+  }, [budgets])
 
   return (
     <div className="h-full w-full p-4 bg-muted/20 border rounded-sm overflow-auto">
@@ -97,6 +140,22 @@ function Dashboard() {
         </p>
       </div>
 
+      {budgets.length === 0 && transactions.length === 0 && !mockMode && (
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">No data found.</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setMockMode(true)
+              toast.success('Mock data loaded')
+            }}
+            className="mt-2"
+          >
+            Use Mock Data
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="rounded-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -104,8 +163,8 @@ function Dashboard() {
             <Wallet className="w-5 h-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹45,320</div>
-            <p className="text-xs text-muted-foreground">+₹1,240 this month</p>
+            <div className="text-2xl font-bold">₹{totalBalance}</div>
+            <p className="text-xs text-muted-foreground">Based on all budgets</p>
           </CardContent>
         </Card>
 
@@ -115,49 +174,63 @@ function Dashboard() {
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹12,870</div>
-            <p className="text-xs text-muted-foreground">-₹300 since last week</p>
+            <div className="text-2xl font-bold">₹{totalExpenses}</div>
+            <p className="text-xs text-muted-foreground">Spent across categories</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-sm">
-          <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Spending by Category</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[180px] -mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                {predefinedCategories.slice(0, 3).map((cat, index) => (
-                  <Pie
-                    key={cat.name}
-                    data={[cat]}
-                    dataKey="amount"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30 + index * 20}
-                    outerRadius={45 + index * 20}
-                    paddingAngle={1}
-                  >
-                    <Cell fill={cat.color} />
-                  </Pie>
-                ))}
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex justify-center gap-4 text-xs text-muted-foreground -mt-1">
-              {predefinedCategories.slice(0, 3).map((cat, idx) => (
-                <div key={idx} className="flex items-center gap-1">
-                  <span
-                    className="inline-block w-3 h-3 rounded-full"
-                    style={{ backgroundColor: cat.color }}
-                  ></span>
-                  {cat.name}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+       <Card className="rounded-sm">
+  <CardHeader className="flex items-center justify-between pb-2">
+    <CardTitle className="text-sm font-medium">Budget Overview</CardTitle>
+  </CardHeader>
+  <CardContent className="h-[180px] -mt-2">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        {budgets.map((b, index) => {
+
+          // filling the pie chart based on spent/limit 
+          const spent = b.spent || 0
+          const limit = b.limit || 1 // fallback to prevent division by zero 
+          const remaining = Math.max(limit - spent, 0)
+          return (
+            <Pie
+              key={b.name}
+              data={[
+                { name: 'Spent', value: spent },
+                { name: 'Remaining', value: remaining },
+              ]}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={30 + index * 15}
+              outerRadius={40 + index * 15}
+              startAngle={90}
+              endAngle={-270}
+              paddingAngle={0}
+            >
+              <Cell fill={b.color} />
+              <Cell fill="#e5e7eb" /> 
+            </Pie>
+          )
+        })}
+        <Tooltip />
+      </PieChart>
+    </ResponsiveContainer>
+    <div className="flex justify-center gap-4 text-xs text-muted-foreground mt-1">
+      {budgets.map((b, idx) => (
+        <div key={b.name} className="flex items-center gap-1">
+          <span
+            className="inline-block w-3 h-3 rounded-full"
+            style={{ backgroundColor: b.color }}
+          ></span>
+          {b.name.split('-')[0]} 
+        </div>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+
       </div>
 
       <Separator />
@@ -168,77 +241,86 @@ function Dashboard() {
           <h2 className="text-lg font-semibold">Transactions</h2>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="mb-2 text-sm text-muted-foreground">Sort by</div>
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'date' | 'amount')}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="amount">Amount</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+<div className="flex flex-col lg:flex-row gap-4 mb-6">
+  {/* Sort Selector */}
+  <div className="flex-1">
+    <div className="mb-2 text-sm text-muted-foreground">Sort by</div>
+    <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'date' | 'amount')}>
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Sort by" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="date">Date</SelectItem>
+        <SelectItem value="amount">Amount</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
 
-          <div className="flex flex-col items-center gap-2 border rounded-md p-2 w-full lg:w-[300px]">
-            <Calendar
-              mode="range"
-              selected={dateRange}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  const parsed = dateRangeSchema.safeParse({
-                    from: range.from,
-                    to: range.to,
-                  });
 
-                  if (!parsed.success) {
-                    toast.error(parsed.error.errors[0].message);
-                    return;
-                  }
+  <div className="flex flex-col items-center gap-2 border rounded-md p-2 w-full lg:w-[300px]">
+    <Calendar
+      mode="range"
+      selected={dateRange}
+      onSelect={(range) => {
+        if (range?.from && range?.to) {
+          const parsed = dateRangeSchema.safeParse({
+            from: range.from,
+            to: range.to,
+          })
+          if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message)
+            return
+          }
+          setDateRange({ from: range.from, to: range.to })
+        } else {
+          setDateRange(undefined)
+        }
+      }}
+    />
+    <span className="text-xs text-muted-foreground">
+      {dateRange?.from && dateRange?.to
+        ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}`
+        : 'Select date range'}
+    </span>
+  </div>
 
-                  setDateRange({ from: range.from, to: range.to });
-                } else {
-                  setDateRange(undefined);
-                }
-              }}
-            />
-            <span className="text-xs text-muted-foreground">
-              {dateRange?.from && dateRange?.to
-                ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}`
-                : 'Select date range'}
-            </span>
-          </div>
 
-          <div className="border rounded-md p-2 flex-1">
-            <p className="text-sm font-medium mb-1">Savings Over Time</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={savingsData}>
-                <XAxis dataKey="date" fontSize={10} />
-                <YAxis fontSize={10} />
-                <Tooltip />
-                <Line type="monotone" dataKey="amount" stroke="#10b984" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+  <div className="border rounded-md p-2 flex-1">
+    <p className="text-sm font-medium mb-1">Savings Over Time</p>
+    <ResponsiveContainer width="100%" height={200}>
+      <LineChart data={savingsData}>
+        <XAxis dataKey="date" fontSize={10} />
+        <YAxis fontSize={10} />
+        <Tooltip />
+        <Line
+          type="monotone"
+          dataKey="amount"
+          stroke="#10b981"
+          strokeWidth={2}
+          dot={{ r: 2 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {predefinedCategories.map((cat) => {
-            const txns = filteredTransactions.filter((t) => t.category === cat.name);
-            if (txns.length === 0) return null;
+          {categories.map((cat) => {
+            const txns = filteredTransactions.filter((t) => t.category === cat.name)
+            if (txns.length === 0) return null
 
-            const page = pageMap[cat.name] || 0;
-            const totalPages = Math.ceil(txns.length / ITEMS_PER_PAGE);
+            const page = pageMap[cat.name] || 0
+            const totalPages = Math.ceil(txns.length / ITEMS_PER_PAGE)
             const paginatedTxns = txns.slice(
               page * ITEMS_PER_PAGE,
               page * ITEMS_PER_PAGE + ITEMS_PER_PAGE
-            );
+            )
 
             const goToPage = (newPage: number) => {
-              setPageMap((prev) => ({ ...prev, [cat.name]: newPage }));
-            };
+              setPageMap((prev) => ({ ...prev, [cat.name]: newPage }))
+            }
 
             return (
               <Card key={cat.name} className="rounded-sm">
@@ -255,10 +337,12 @@ function Dashboard() {
                   {paginatedTxns.map((t) => (
                     <div key={t.id} className="flex justify-between text-muted-foreground">
                       <div>
-                        <div className="font-medium text-black dark:text-zinc-50">{t.description}</div>
+                        <div className="font-medium text-black dark:text-white">{t.description}</div>
                         <div className="text-xs">{format(new Date(t.date), 'MMM d, yyyy')}</div>
                       </div>
-                      <div className="text-right font-semibold text-black dark:text-white">₹{t.amount}</div>
+                      <div className="text-right font-semibold text-black dark:text-white">
+                        ₹{t.amount}
+                      </div>
                     </div>
                   ))}
 
@@ -287,12 +371,12 @@ function Dashboard() {
                   )}
                 </CardContent>
               </Card>
-            );
+            )
           })}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Dashboard;
+export default Dashboard

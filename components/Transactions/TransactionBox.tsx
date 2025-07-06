@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import {
   Card,
@@ -37,70 +37,90 @@ import {
 import { exportTransactionsAsExcel } from '@/app/transactions/action'
 import { Transaction } from '@/constants'
 import { predefinedCategories } from '@/constants/mockData'
-import {z} from 'zod';
+import { z } from 'zod'
 import { toast } from 'sonner'
 
-export interface Category {
-  name: string
-  amount: number
-  color: string
-}
+import {
+  getStoredTransactions,
+  saveTransaction,
+  updateTransaction,
+  deleteTransaction as removeTransaction,
+} from '@/app/localStorageActions/transactionsStorage'
+import { Category } from '@/constants'
 
+import { getStoredCategories } from '@/app/localStorageActions/action'
 
 
 
 
 const defaultCategories: Category[] = [
-  { name: 'Food', amount: 0, color: '#FF5733' },
-  { name: 'Transport', amount: 0, color: '#4287f5' },
-  { name: 'Shopping', amount: 0, color: '#FFC300' },
+  { name: 'Food',color: '#FF5733' },
+  { name: 'Transport',  color: '#4287f5' },
+  { name: 'Shopping',  color: '#FFC300' },
 ]
 
-function TransactionBox(){
-
-    //zod validation for adding transactions
-    const transactionSchema = z.object({
-        amount: z.string().min(1, 'Amount is required'),
+const transactionSchema = z.object({
+  amount: z.string().min(1, 'Amount is required'),
   description: z.string().min(1, 'Description is required'),
   date: z.string().min(1, 'Date is required'),
   category: z.string().min(1, 'Category is required'),
+})
 
-    })
+function TransactionBox() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [editing, setEditing] = useState<Transaction | null>(null)
-  const [form, setForm] = useState({ amount: '', description: '', date: '', category: '' })
+  const [form, setForm] = useState({
+    amount: '',
+    description: '',
+    date: '',
+    category: '',
+  })
   const [filterCategory, setFilterCategory] = useState<string>('All')
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const [categories , setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const txns = getStoredTransactions()
+    setTransactions(txns)
+    const cats = getStoredCategories();
+    setCategories(cats);
+  }, [])
+
   const handleAddOrUpdate = () => {
-  const result = transactionSchema.safeParse(form)
-  if (!result.success) {
-    const message = result.error.errors.map((e) => e.message).join(', ')
-    toast.error('Validation Error', {
-      description: message,
-    })
-    return
+    const result = transactionSchema.safeParse(form)
+    if (!result.success) {
+      const message = result.error.errors.map((e) => e.message).join(', ')
+      toast.error('Validation Error', {
+        description: message,
+      })
+      return
+    }
+
+    const updated: Transaction = {
+      id: editing ? editing.id : Date.now(),
+      amount: Number(form.amount),
+      description: form.description,
+      category: form.category,
+      date: new Date(form.date),
+    }
+
+    if (editing) {
+      updateTransaction(updated)
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === editing.id ? updated : t))
+      )
+    } else {
+      saveTransaction(updated)
+      setTransactions((prev) => [...prev, updated])
+    }
+
+    setForm({ amount: '', description: '', date: '', category: '' })
+    setEditing(null)
+    setDialogOpen(false)
+
+    toast.success(`Transaction ${editing ? 'updated' : 'added'} successfully`)
   }
-
-  const updated: Transaction = {
-    id: editing ? editing.id : Date.now(),
-    amount: Number(form.amount),
-    description: form.description,
-    category: form.category,
-    date: new Date(form.date),
-  }
-
-  setTransactions((prev) =>
-    editing ? prev.map((t) => (t.id === editing.id ? updated : t)) : [...prev, updated]
-  )
-
-  setForm({ amount: '', description: '', date: '', category: '' })
-  setEditing(null)
-  setDialogOpen(false)
-
-  toast.success(`Transaction ${editing ? 'updated' : 'added'} successfully`)
-}
-
 
   const handleEdit = (txn: Transaction) => {
     setEditing(txn)
@@ -114,6 +134,7 @@ function TransactionBox(){
   }
 
   const handleDelete = (id: number) => {
+    removeTransaction(id)
     setTransactions((prev) => prev.filter((txn) => txn.id !== id))
   }
 
@@ -123,11 +144,14 @@ function TransactionBox(){
       : transactions.filter((t) => t.category === filterCategory)
   }, [transactions, filterCategory])
 
-  const monthlyData = filteredTxns.reduce((acc: { [key: string]: number }, txn) => {
-    const key = format(new Date(txn.date), 'MMM yyyy')
-    acc[key] = (acc[key] || 0) + txn.amount
-    return acc
-  }, {})
+  const monthlyData = filteredTxns.reduce(
+    (acc: { [key: string]: number }, txn) => {
+      const key = format(new Date(txn.date), 'MMM yyyy')
+      acc[key] = (acc[key] || 0) + txn.amount
+      return acc
+    },
+    {}
+  )
 
   const chartData = Object.entries(monthlyData).map(([month, amount]) => ({
     month,
@@ -138,10 +162,12 @@ function TransactionBox(){
     <div className="overflow-auto p-2 space-y-4">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold">Transactions</h1>
-        <p className="text-muted-foreground text-sm">Manage and view your expenses.</p>
+        <p className="text-muted-foreground text-sm">
+          Manage and view your expenses.
+        </p>
       </div>
 
-      <Card className='rounded-sm'>
+      <Card className="rounded-sm">
         <CardHeader className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">Monthly Expenses</CardTitle>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
@@ -149,8 +175,10 @@ function TransactionBox(){
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All" className='rounded-sm'>All</SelectItem>
-              {defaultCategories.map((cat) => (
+              <SelectItem value="All" className="rounded-sm">
+                All
+              </SelectItem>
+              {categories.map((cat) => (
                 <SelectItem key={cat.name} value={cat.name}>
                   {cat.name}
                 </SelectItem>
@@ -187,7 +215,9 @@ function TransactionBox(){
                   id="amount"
                   type="number"
                   value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, amount: e.target.value }))
+                  }
                 />
               </div>
               <div>
@@ -195,7 +225,9 @@ function TransactionBox(){
                 <Input
                   id="desc"
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, description: e.target.value }))
+                  }
                 />
               </div>
               <div>
@@ -204,7 +236,9 @@ function TransactionBox(){
                   id="date"
                   type="date"
                   value={form.date}
-                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, date: e.target.value }))
+                  }
                 />
               </div>
               <div>
@@ -213,10 +247,12 @@ function TransactionBox(){
                   id="category"
                   className="border rounded-md w-full p-2 text-sm"
                   value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, category: e.target.value }))
+                  }
                 >
                   <option value="">Select category</option>
-                  {defaultCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <option key={cat.name} value={cat.name}>
                       {cat.name}
                     </option>
@@ -239,7 +275,7 @@ function TransactionBox(){
         </Button>
       </div>
 
-      <Card className='rounded-sm'>
+      <Card className="rounded-sm">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Transactions</CardTitle>
         </CardHeader>
@@ -248,28 +284,34 @@ function TransactionBox(){
             <p className="text-sm text-muted-foreground">No transactions to show.</p>
           ) : (
             filteredTxns.map((txn) => (
-            <div key={txn.id} className="flex justify-between items-center border p-2 rounded-sm">
-  <div>
-    <div className="font-medium">₹{txn.amount}</div>
-    <div className="text-xs text-muted-foreground">{txn.description}</div>
-    <div className="text-xs text-muted-foreground flex items-center gap-2">
-      <span
-        className="inline-block w-2.5 h-2.5 rounded-full"
-        style={{ backgroundColor: predefinedCategories.find((cat) => cat.name === txn.category)?.color || '#ccc' }}
-      />
-      <span>{txn.category}</span> • {format(new Date(txn.date), 'MMM d, yyyy')}
-    </div>
-  </div>
-  <div className="flex gap-2">
-    <Button size="icon" variant="ghost" onClick={() => handleEdit(txn)}>
-      <Pencil className="w-4 h-4" />
-    </Button>
-    <Button size="icon" variant="ghost" onClick={() => handleDelete(txn.id)}>
-      <Trash2 className="w-4 h-4 text-red-500" />
-    </Button>
-  </div>
-</div>
+              <div
+                key={txn.id}
+                className="flex justify-between items-center border p-2 rounded-sm"
+              >
+                <div>
+                  <div className="font-medium">₹{txn.amount}</div>
+                  <div className="text-xs text-muted-foreground">{txn.description}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor:
+  categories.find((cat) => cat.name === txn.category)?.color || '#ccc',
 
+                      }}
+                    />
+                    <span>{txn.category}</span> • {format(new Date(txn.date), 'MMM d, yyyy')}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="icon" variant="ghost" onClick={() => handleEdit(txn)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(txn.id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
             ))
           )}
         </CardContent>

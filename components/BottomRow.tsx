@@ -22,9 +22,9 @@ const tabs = [
     href: '/budget',
   },
   {
-    name: 'Sources',
+    name: 'Insights',
     icon: BarChart3,
-    href: '/sources',
+    href: '/budget#insights',
   },
 ]
 

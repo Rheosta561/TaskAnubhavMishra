@@ -2,11 +2,11 @@ import { Category } from './index';
 import { Transaction } from './index';
 
 export const predefinedCategories: Category[] = [
-  { name: 'Food', amount: 4000, color: '#8884d8' },
-  { name: 'Transport', amount: 2000, color: '#82ca9d' },
-  { name: 'Shopping', amount: 3000, color: '#ffc658' },
-  { name: 'Bills', amount: 1800, color: '#ff8042' },
-  { name: 'Other', amount: 2070, color: '#8dd1e1' },
+  { name: 'Food',  color: '#8884d8' },
+  { name: 'Transport',  color: '#82ca9d' },
+  { name: 'Shopping',   color: '#ffc658' },
+  { name: 'Bills',  color: '#ff8042' },
+  { name: 'Other',  color: '#8dd1e1' },
 ];
 
 export const transactions: Transaction[] = [
@@ -43,3 +43,7 @@ export const savingsData = [
   { date: '2024-07-20', amount: 4800 },
   { date: '2024-07-25', amount: 5100 },
 ];
+export const mockBudgets = [
+  { name: 'Food-April', limit: 8000, spent: 4500, color: '#F87171' },
+  { name: 'Travel-April', limit: 10000, spent: 8200, color: '#60A5FA' },
+]
