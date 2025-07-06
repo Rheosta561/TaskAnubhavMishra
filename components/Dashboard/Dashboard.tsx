@@ -140,7 +140,7 @@ function Dashboard() {
           Dashboard
         </h1>
         <p className="text-primary/75 text-sm">
-          Welcome back. Here's a quick look at your finances.
+          Welcome back. Here's a quick look at your finances
         </p>
       </div>
 
@@ -222,7 +222,7 @@ function Dashboard() {
       </PieChart>
     </ResponsiveContainer>
     <div className="flex justify-center gap-4 text-xs text-muted-foreground mt-1">
-      {budgets.map((b, idx) => (
+      {budgets.map((b) => (
         <div key={b.name} className="flex items-center gap-1">
           <span
             className="inline-block w-3 h-3 rounded-full"

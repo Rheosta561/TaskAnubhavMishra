@@ -1,4 +1,4 @@
-import Dashboard from '@/components/Dashboard/Dashboard'
+
 import DashboardWrapper from '@/components/Dashboard/DashboardWrapper'
 import React from 'react'
 import { Footer } from 'react-day-picker'
