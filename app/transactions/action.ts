@@ -1,13 +1,15 @@
-'use client'
+'use server'
 
 import { saveAs } from 'file-saver'
 import * as XLSX from 'xlsx'
 import { Transaction } from '@/constants'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { BudgetCategory } from '@/constants'
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-export function exportTransactionsAsExcel(transactions: Transaction[]) {
+
+export async function exportTransactionsAsExcel(transactions: Transaction[]) {
   if (!transactions || transactions.length === 0) return
 
   // preparing the data
@@ -44,6 +46,7 @@ export function exportTransactionsAsExcel(transactions: Transaction[]) {
 
 // generating insights using gemini
 export async function GenerateInsights(categories: BudgetCategory[]) {
+
   const prompt = `
 You are a financial assistant. Based on the following category-wise budget and spending data, give 2 short insights. 
 Each insight should have a short title (3-5 words) and a short description (1-2 lines).
@@ -57,14 +60,20 @@ Respond strictly in JSON format:
   ...
 ]
   `
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
   const result = await model.generateContent(prompt)
   const response = await result.response.text()
+  const cleaned = response
+    .replace(/```json/g, '')
+    .replace(/```/g, '')
+    .trim();
+
 
   try {
-    const json = JSON.parse(response)
+    const json = JSON.parse(cleaned);
     return json
   } catch (e) {
+    console.error(e)
     return [
       { heading: 'Insight Error', description: 'Could not parse Gemini response.' }
     ]

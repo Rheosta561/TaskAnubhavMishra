@@ -65,7 +65,8 @@ export default function DashboardWrapper() {
           )}
         </motion.div>
       </AnimatePresence>
-      {step===4 && <Dashboard/>}
+      {step===4 && <Dashboard/> }
+
     </div>
   );
 }

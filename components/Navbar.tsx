@@ -25,16 +25,16 @@ export default function Navbar() {
 
         <ul className="hidden md:flex space-x-6 text-sm font-medium">
           <li>
-            <Link href="/home" className="hover:text-primary transition-colors">Home</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           </li>
           <li>
-            <Link href="/students" className="hover:text-primary transition-colors">Students</Link>
+            <Link href="/transactions" className="hover:text-primary transition-colors">Transactions</Link>
           </li>
           <li>
-            <Link href="/companies" className="hover:text-primary transition-colors">Companies</Link>
+            <Link href="/budget" className="hover:text-primary transition-colors">Categories</Link>
           </li>
           <li>
-            <Link href="/notice" className="hover:text-primary transition-colors">Notice</Link>
+
           </li>
         </ul>
 
@@ -45,21 +45,7 @@ export default function Navbar() {
             Hi there 
           </div>
 
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push('/home')}>Home</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/students')}>Students</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/companies')}>Companies</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/notice')}>Notice</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          
         </div>
       </nav>
     </header>
