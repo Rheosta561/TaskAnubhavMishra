@@ -1,11 +1,18 @@
-# 🌊 Mwave — Your Finance Tracker
+#  Mwave — Your Finance Tracker
 
 **Mwave** is a modern, minimal, and customizable personal finance tracker built using **Next.js 14 App Router**, **TypeScript**, and **Tailwind CSS**.  
 It allows you to track expenses, manage budgets, analyze savings over time, and get insights via **Gemini AI**.
 
 ---
 
-## 🗂️ Project Structure
+##  Important Note
+
+>  **Authentication Notice**  
+> As mentioned in the task — **"Do not implement authentication/login. Submissions with login/signup will not be evaluated."**  
+> Therefore, **only `localStorage`** is used to persist records.  
+>  The application is fully **scalable and ready to connect with MongoDB** 
+
+##  Project Structure
 
 ```
 mwave/

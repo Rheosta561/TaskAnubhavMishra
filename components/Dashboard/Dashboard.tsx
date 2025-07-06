@@ -113,14 +113,18 @@ function Dashboard() {
       })
   }, [transactions, dateRange, sortBy])
 
+  // total balance is the summation of budget limit of all the categories 
   const totalBalance = useMemo(() => {
     return budgets.reduce((sum, b) => sum + (b.limit || 0), 0)
   }, [budgets])
 
+
+  // total balance is the summation of budget spent of all the categories 
   const totalExpenses = useMemo(() => {
     return budgets.reduce((sum, b) => sum + (b.spent || 0), 0)
   }, [budgets])
 
+  // savings = total limit -total spent 
   const savingsData = useMemo(() => {
     return budgets.map((b) => ({
       date: b.name.split('-')[1] || '',

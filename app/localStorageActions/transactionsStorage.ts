@@ -10,6 +10,7 @@ const months = [
 
 const getMonthStr = (date: Date) => months[date.getMonth()]
 
+// fetching stored transactions from the local storage , 
 export const getStoredTransactions = (): Transaction[] => {
   if (typeof window === 'undefined') return []
   const raw = localStorage.getItem(TRANSACTION_KEY)
@@ -21,6 +22,7 @@ export const getStoredTransactions = (): Transaction[] => {
   }
 }
 
+// fetching stored budgets from the local storage 
 export const getStoredBudgets = (): BudgetCategory[] => {
   if (typeof window === 'undefined') return []
   const raw = localStorage.getItem(BUDGET_KEY)
@@ -31,10 +33,11 @@ export const getStoredBudgets = (): BudgetCategory[] => {
   }
 }
 
+// saving the budget 
 export const saveBudgets = (budgets: BudgetCategory[]) => {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets))
 }
-
+// updating the spent of budgetCategory
 export const updateBudgetSpent = () => {
   const transactions = getStoredTransactions()
   const budgets = getStoredBudgets()
@@ -54,19 +57,22 @@ export const updateBudgetSpent = () => {
   saveBudgets(updated)
 }
 
+// saving transaction after validation 
 export const saveTransaction = (txn: Transaction) => {
   const existing = getStoredTransactions()
   const updated = [...existing, txn]
   localStorage.setItem(TRANSACTION_KEY, JSON.stringify(updated))
   updateBudgetSpent()
 }
-
+// updating the transaction
 export const updateTransaction = (txn: Transaction) => {
   const existing = getStoredTransactions()
   const updated = existing.map((t) => (t.id === txn.id ? txn : t))
   localStorage.setItem(TRANSACTION_KEY, JSON.stringify(updated))
   updateBudgetSpent()
 }
+
+// deleting the transaction 
 
 export const deleteTransaction = (id: number) => {
   const existing = getStoredTransactions()
