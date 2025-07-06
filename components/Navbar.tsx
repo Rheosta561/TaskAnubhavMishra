@@ -1,19 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+
 import { ThemeToggle } from './theme-toggle';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Menu } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
+
 
 export default function Navbar() {
-  const router = useRouter();
+
 
   return (
     <header className="w-full border-b shadow-sm bg-background fixed z-10">

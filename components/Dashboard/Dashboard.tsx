@@ -140,7 +140,7 @@ function Dashboard() {
           Dashboard
         </h1>
         <p className="text-primary/75 text-sm">
-          Welcome back. Here's a quick look at your finances
+          Welcome back. Here is a quick look at your finances
         </p>
       </div>
 

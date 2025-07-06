@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/select'
 import { exportTransactionsAsExcel } from '@/app/transactions/action'
 import { Transaction } from '@/constants'
-import { predefinedCategories } from '@/constants/mockData'
+// import { predefinedCategories } from '@/constants/mockData'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
@@ -53,11 +53,11 @@ import { getStoredCategories } from '@/app/localStorageActions/action'
 
 
 
-const defaultCategories: Category[] = [
-  { name: 'Food',color: '#FF5733' },
-  { name: 'Transport',  color: '#4287f5' },
-  { name: 'Shopping',  color: '#FFC300' },
-]
+// const defaultCategories: Category[] = [
+//   { name: 'Food',color: '#FF5733' },
+//   { name: 'Transport',  color: '#4287f5' },
+//   { name: 'Shopping',  color: '#FFC300' },
+// ]
 
 const transactionSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
